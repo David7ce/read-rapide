@@ -107,15 +107,40 @@ body {
   font-size: 0.86rem;
 }
 
-.header-selector-item label {
+.selector-label {
   font-size: 0.75rem;
 }
 
-.header-selector-item select {
-  width: auto;
-  min-width: 94px;
+.segmented {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.15rem;
+  border: 1px solid var(--line);
   border-radius: 999px;
-  padding: 0.35rem 0.55rem;
+  background: color-mix(in srgb, var(--panel) 85%, #ffffff 15%);
+}
+
+.segment-btn {
+  border: 0;
+  border-radius: 999px;
+  padding: 0.3rem 0.55rem;
+  font: inherit;
+  font-size: 0.74rem;
+  color: var(--muted);
+  background: transparent;
+  cursor: pointer;
+  transition: all 120ms ease;
+}
+
+.segment-btn.active {
+  color: color-mix(in srgb, var(--panel) 20%, #ffffff 80%);
+  background: linear-gradient(120deg, var(--accent), #ef7a43);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+}
+
+.segment-btn:hover {
+  color: var(--ink);
 }
 
 .panel {
@@ -445,6 +470,10 @@ input:focus-visible {
   .header-selector-item {
     width: 100%;
     justify-content: space-between;
+  }
+
+  .segmented {
+    margin-left: auto;
   }
 
   .input-panel-top {

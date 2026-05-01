@@ -264,28 +264,52 @@ function App() {
         <div className="header-selectors" aria-label="Header selectors">
           <div className="header-selector-item">
             <span className="header-selector-icon" aria-hidden="true">🌐</span>
-            <label htmlFor="lang-select">{t.languageLabel}</label>
-            <select
-              id="lang-select"
-              value={lang}
-              onChange={(event) => setLang(event.target.value as Lang)}
-            >
-              <option value="es">Espanol</option>
-              <option value="en">English</option>
-            </select>
+            <span className="selector-label">{t.languageLabel}</span>
+            <div className="segmented" role="group" aria-label={t.languageLabel}>
+              <button
+                type="button"
+                className={`segment-btn ${lang === 'es' ? 'active' : ''}`}
+                onClick={() => setLang('es')}
+                aria-pressed={lang === 'es'}
+                title="Espanol"
+              >
+                🇪🇸 ES
+              </button>
+              <button
+                type="button"
+                className={`segment-btn ${lang === 'en' ? 'active' : ''}`}
+                onClick={() => setLang('en')}
+                aria-pressed={lang === 'en'}
+                title="English"
+              >
+                🇺🇸 EN
+              </button>
+            </div>
           </div>
 
           <div className="header-selector-item">
             <span className="header-selector-icon" aria-hidden="true">🎨</span>
-            <label htmlFor="theme-select">{t.themeLabel}</label>
-            <select
-              id="theme-select"
-              value={theme}
-              onChange={(event) => setTheme(event.target.value as Theme)}
-            >
-              <option value="light">{t.themeLight}</option>
-              <option value="dark">{t.themeDark}</option>
-            </select>
+            <span className="selector-label">{t.themeLabel}</span>
+            <div className="segmented" role="group" aria-label={t.themeLabel}>
+              <button
+                type="button"
+                className={`segment-btn ${theme === 'light' ? 'active' : ''}`}
+                onClick={() => setTheme('light')}
+                aria-pressed={theme === 'light'}
+                title={t.themeLight}
+              >
+                ☀️
+              </button>
+              <button
+                type="button"
+                className={`segment-btn ${theme === 'dark' ? 'active' : ''}`}
+                onClick={() => setTheme('dark')}
+                aria-pressed={theme === 'dark'}
+                title={t.themeDark}
+              >
+                🌙
+              </button>
+            </div>
           </div>
         </div>
       </header>
