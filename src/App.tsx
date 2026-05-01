@@ -11,7 +11,8 @@ import {
 
 type ReaderPrefs = {
   lang: Lang
-  theme: Theme
+  theme?: Theme
+  followSystemTheme?: boolean
   mode: SpeedMode
   fixedWpm: number
   autoConfig: AutoSpeedConfig
@@ -21,6 +22,15 @@ type ReaderPrefs = {
 type Theme = 'light' | 'dark'
 
 const PREFS_KEY = 'read-rapide:prefs'
+const SYSTEM_THEME_QUERY = '(prefers-color-scheme: dark)'
+
+function getSystemTheme(): Theme {
+  if (typeof window === 'undefined') {
+    return 'light'
+  }
+
+  return window.matchMedia(SYSTEM_THEME_QUERY).matches ? 'dark' : 'light'
+}
 
 function splitOrp(word: string): { pre: string; pivot: string; post: string } {
   if (!word) {
@@ -38,7 +48,8 @@ function splitOrp(word: string): { pre: string; pivot: string; post: string } {
 
 function App() {
   const [lang, setLang] = useState<Lang>('es')
-  const [theme, setTheme] = useState<Theme>('light')
+  const [theme, setTheme] = useState<Theme>(() => getSystemTheme())
+  const [followSystemTheme, setFollowSystemTheme] = useState(true)
   const [text, setText] = useState(
     'La lectura por pulsos presenta cada palabra en el centro, reduciendo el movimiento de los ojos y permitiendo acelerar el ritmo de comprension.',
   )
@@ -80,8 +91,15 @@ function App() {
       if (parsed.lang === 'es' || parsed.lang === 'en') {
         setLang(parsed.lang)
       }
+      if (typeof parsed.followSystemTheme === 'boolean') {
+        setFollowSystemTheme(parsed.followSystemTheme)
+      }
       if (parsed.theme === 'light' || parsed.theme === 'dark') {
-        setTheme(parsed.theme)
+        if (parsed.followSystemTheme === false) {
+          setTheme(parsed.theme)
+        } else {
+          setTheme(getSystemTheme())
+        }
       }
       if (parsed.mode === 'fixed' || parsed.mode === 'auto') {
         setMode(parsed.mode)
@@ -106,9 +124,26 @@ function App() {
   }, [])
 
   useEffect(() => {
+    if (!followSystemTheme) {
+      return
+    }
+
+    const mediaQuery = window.matchMedia(SYSTEM_THEME_QUERY)
+    setTheme(mediaQuery.matches ? 'dark' : 'light')
+
+    const onThemeChange = (event: MediaQueryListEvent) => {
+      setTheme(event.matches ? 'dark' : 'light')
+    }
+
+    mediaQuery.addEventListener('change', onThemeChange)
+    return () => mediaQuery.removeEventListener('change', onThemeChange)
+  }, [followSystemTheme])
+
+  useEffect(() => {
     const prefs: ReaderPrefs = {
       lang,
       theme,
+      followSystemTheme,
       mode,
       fixedWpm,
       autoConfig,
@@ -120,7 +155,7 @@ function App() {
     } catch {
       // Ignore write errors (private mode or storage restrictions).
     }
-  }, [autoConfig, fixedWpm, lang, mode, orpEnabled, theme])
+  }, [autoConfig, fixedWpm, followSystemTheme, lang, mode, orpEnabled, theme])
 
   useEffect(() => {
     document.body.setAttribute('data-theme', theme)
@@ -256,69 +291,54 @@ function App() {
   return (
     <main className="app-shell">
       <header className="hero">
-        <p className="hero-kicker">RSVP WEB APP</p>
-        <h1>{t.appTitle}</h1>
-        <p className="hero-subtitle">{t.appSubtitle}</p>
-        <p className="brief-description">{t.briefDescription}</p>
 
         <div className="header-selectors" aria-label="Header selectors">
-          <div className="header-selector-item">
-            <span className="header-selector-icon" aria-hidden="true">🌐</span>
-            <span className="selector-label">{t.languageLabel}</span>
-            <div className="segmented" role="group" aria-label={t.languageLabel}>
-              <button
-                type="button"
-                className={`segment-btn ${lang === 'es' ? 'active' : ''}`}
-                onClick={() => setLang('es')}
-                aria-pressed={lang === 'es'}
-                title="Espanol"
-              >
-                🇪🇸 ES
-              </button>
-              <button
-                type="button"
-                className={`segment-btn ${lang === 'en' ? 'active' : ''}`}
-                onClick={() => setLang('en')}
-                aria-pressed={lang === 'en'}
-                title="English"
-              >
-                🇺🇸 EN
-              </button>
-            </div>
+          <h1>{t.appTitle}</h1>
+          <div className="segmented" role="group" aria-label={t.languageLabel}>
+            <button
+              type="button"
+              className={`segment-btn ${lang === 'es' ? 'active' : ''}`}
+              onClick={() => setLang('es')}
+              aria-pressed={lang === 'es'}
+              title="Espanol"
+            >
+              🇪🇸 ES
+            </button>
+            <button
+              type="button"
+              className={`segment-btn ${lang === 'en' ? 'active' : ''}`}
+              onClick={() => setLang('en')}
+              aria-pressed={lang === 'en'}
+              title="English"
+            >
+              🇺🇸 EN
+            </button>
           </div>
 
-          <div className="header-selector-item">
-            <span className="header-selector-icon" aria-hidden="true">🎨</span>
-            <span className="selector-label">{t.themeLabel}</span>
-            <div className="segmented" role="group" aria-label={t.themeLabel}>
-              <button
-                type="button"
-                className={`segment-btn ${theme === 'light' ? 'active' : ''}`}
-                onClick={() => setTheme('light')}
-                aria-pressed={theme === 'light'}
-                title={t.themeLight}
-              >
-                ☀️
-              </button>
-              <button
-                type="button"
-                className={`segment-btn ${theme === 'dark' ? 'active' : ''}`}
-                onClick={() => setTheme('dark')}
-                aria-pressed={theme === 'dark'}
-                title={t.themeDark}
-              >
-                🌙
-              </button>
-            </div>
+          <div className="segmented" role="group" aria-label={t.themeLabel}>
+            <button
+              type="button"
+              className="theme-toggle-btn"
+              onClick={() => {
+                setFollowSystemTheme(false)
+                setTheme((prev) => (prev === 'light' ? 'dark' : 'light'))
+              }}
+              aria-label={t.themeLabel}
+              title={`${t.themeLabel} (${followSystemTheme ? 'Auto' : 'Manual'})`}
+            >
+              {theme === 'dark' ? '🌙' : '☀️'}
+            </button>
           </div>
         </div>
+
+        <p className="hero-subtitle">{t.appSubtitle}</p>
+        <p className="brief-description">{t.briefDescription}</p>
       </header>
 
       <section className="panel input-panel">
         <div className="input-panel-top">
           <label htmlFor="reader-input">{t.inputLabel}</label>
           <div className="control-inline upload-inline input-upload-inline">
-            <span className="input-upload-note">2a opcion:</span>
             <label htmlFor="txt-upload" className="mini-btn ghost">{t.uploadTxt}</label>
             <input
               id="txt-upload"
@@ -339,28 +359,6 @@ function App() {
 
       <section className="panel controls-panel" aria-label={t.controlsLabel}>
         <div className="controls-line">
-          <div className="control-inline">
-            <label htmlFor="mode-select">{t.modeLabel}</label>
-            <select
-              id="mode-select"
-              value={mode}
-              onChange={(event) => setMode(event.target.value as SpeedMode)}
-            >
-              <option value="fixed">{t.fixedMode}</option>
-              <option value="auto">{t.autoMode}</option>
-            </select>
-          </div>
-
-          <div className="control-inline checkbox-inline">
-            <label htmlFor="orp-toggle">{t.orpLabel}</label>
-            <input
-              id="orp-toggle"
-              type="checkbox"
-              checked={orpEnabled}
-              onChange={(event) => setOrpEnabled(event.target.checked)}
-            />
-          </div>
-
           {mode === 'fixed' ? (
             <div className="control-inline slider-inline">
               <label htmlFor="fixed-wpm">{t.fixedWpm}</label>
@@ -419,6 +417,28 @@ function App() {
                   }
                 />
                 <span className="slider-value">{autoConfig.rampSeconds}</span>
+              </div>
+
+              <div className="control-inline checkbox-inline">
+                <label htmlFor="orp-toggle">{t.orpLabel}</label>
+                <input
+                  id="orp-toggle"
+                  type="checkbox"
+                  checked={orpEnabled}
+                  onChange={(event) => setOrpEnabled(event.target.checked)}
+                />
+              </div>
+
+              <div className="control-inline">
+                <label htmlFor="mode-select">{t.modeLabel}</label>
+                <select
+                  id="mode-select"
+                  value={mode}
+                  onChange={(event) => setMode(event.target.value as SpeedMode)}
+                >
+                  <option value="fixed">{t.fixedMode}</option>
+                  <option value="auto">{t.autoMode}</option>
+                </select>
               </div>
 
               <div className="control-inline">
